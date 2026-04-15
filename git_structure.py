@@ -1,6 +1,7 @@
 import os
 import subprocess
 from typing import Dict, List, Any
+from gitignore_manager import _is_ignored  # centralized — removes duplication
 
 def get_file_status_map(root_path: str) -> Dict[str, str]:
     """Return dict of relative path -> tag ('clean', 'modified', 'untracked') for Git coloring."""
@@ -26,19 +27,6 @@ def get_file_status_map(root_path: str) -> Dict[str, str]:
     except Exception:
         pass  # graceful fallback
     return status_map
-
-
-def _is_ignored(rel_path: str, root_path: str) -> bool:
-    """Check if the relative path appears in .gitignore (exact line match, ignoring comments/empty lines)."""
-    gitignore_path = os.path.join(root_path, ".gitignore")
-    if not os.path.exists(gitignore_path):
-        return False
-    try:
-        with open(gitignore_path, "r", encoding="utf-8") as f:
-            lines = [line.strip() for line in f.readlines() if line.strip() and not line.startswith("#")]
-        return rel_path in lines
-    except Exception:
-        return False
 
 
 def build_interactive_structure(root_path: str) -> List[Dict[str, Any]]:

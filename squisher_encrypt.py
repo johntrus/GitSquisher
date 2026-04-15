@@ -1,48 +1,33 @@
 import os
-from cryptography.fernet import Fernet
-from datetime import datetime
-from squisher import create_squish, list_squishable_files
-
-def _get_key_path(project_path: str) -> str:
-    """Return the path to the encryption key (already ignored by .gitignore)."""
-    return os.path.join(project_path, "grem_encryption.key")
-
-
-def generate_encryption_key(project_path: str) -> tuple[bool, str]:
-    """Generate a new Fernet key (AES-256) and save it as grem_encryption.key if it doesn't exist.
-
-    Returns (success, message). Key is never committed because .gitignore already excludes it.
-    """
-    key_path = _get_key_path(project_path)
-    if os.path.exists(key_path):
-        return True, "✅ Encryption key already exists (re-using secure key)"
-
-    try:
-        key = Fernet.generate_key()
-        with open(key_path, "wb") as f:
-            f.write(key)
-        return True, f"✅ New encryption key generated and saved to grem_encryption.key"
-    except Exception as e:
-        return False, f"❌ Failed to generate encryption key: {str(e)}"
-
+from squisher import create_squish
+from squisher_keylogic import (
+    generate_encryption_key,
+    auto_rotate_if_needed,
+    encrypt_data,
+    list_encrypted_files
+)
 
 def encrypt_squish(project_path: str, project_name: str) -> tuple[bool, str]:
-    """Create a fresh squish then encrypt it with the repo's Fernet key.
+    """Create a fresh squish (zip) then encrypt it with AES-256 using automated key rotation.
 
-    The encrypted .enc file is placed inside squishes/ alongside the original zip.
-    Returns (success, message) with full path to the encrypted archive.
+    This is now the single public entry point for the entire "Encrypt & Key" feature.
+    All key management, rotation, and encryption logic lives in squisher_keylogic.py.
     """
-    # First ensure we have a key
+    # Ensure we have a valid key (and rotate automatically if needed)
     success, msg = generate_encryption_key(project_path)
     if not success:
         return False, msg
 
-    # Create the clean squish first (re-uses all existing logic)
+    rotated, rot_msg = auto_rotate_if_needed(project_path)
+    if not rotated:
+        return False, rot_msg
+
+    # Create the clean squish first
     squish_success, squish_msg = create_squish(project_path, project_name)
     if not squish_success:
         return False, f"❌ Squish failed before encryption: {squish_msg}"
 
-    # Locate the newest zip in squishes/
+    # Locate the newest .zip in squishes/
     squishes_dir = os.path.join(project_path, "squishes")
     zip_files = [f for f in os.listdir(squishes_dir) if f.endswith(".zip")]
     if not zip_files:
@@ -54,49 +39,28 @@ def encrypt_squish(project_path: str, project_name: str) -> tuple[bool, str]:
     )
     zip_filename = os.path.basename(latest_zip)
 
-    # Encrypt the zip
-    enc_filename = zip_filename.replace(".zip", ".enc")
-    enc_path = os.path.join(squishes_dir, enc_filename)
-
+    # Read the zip and encrypt using the centralized logic
     try:
-        with open(_get_key_path(project_path), "rb") as f:
-            key = f.read()
-        fernet = Fernet(key)
-
         with open(latest_zip, "rb") as f:
             data = f.read()
 
-        encrypted = fernet.encrypt(data)
+        enc_success, encrypted, enc_msg = encrypt_data(data, project_path)
+        if not enc_success:
+            return False, enc_msg
+
+        # Save the encrypted file next to the original zip
+        enc_filename = zip_filename.replace(".zip", ".enc")
+        enc_path = os.path.join(squishes_dir, enc_filename)
 
         with open(enc_path, "wb") as f:
             f.write(encrypted)
 
-        return True, f"✅ Encrypted {zip_filename} → {enc_filename} (secure AES-256)"
+        return True, f"✅ Encrypted {zip_filename} → {enc_filename} (secure AES-256 with auto-rotation)"
     except Exception as e:
         return False, f"❌ Encryption failed: {str(e)}"
 
 
-def decrypt_file(enc_path: str, project_path: str, output_path: str = None) -> tuple[bool, str]:
-    """Decrypt an .enc file back to original using the repo's key (utility for completeness)."""
-    if not os.path.exists(enc_path):
-        return False, "❌ Encrypted file not found"
-
-    try:
-        with open(_get_key_path(project_path), "rb") as f:
-            key = f.read()
-        fernet = Fernet(key)
-
-        with open(enc_path, "rb") as f:
-            encrypted = f.read()
-
-        decrypted = fernet.decrypt(encrypted)
-
-        if output_path is None:
-            output_path = enc_path.replace(".enc", "_decrypted.zip")
-
-        with open(output_path, "wb") as f:
-            f.write(decrypted)
-
-        return True, f"✅ Decrypted to {os.path.basename(output_path)}"
-    except Exception as e:
-        return False, f"❌ Decryption failed (wrong key?): {str(e)}"
+# Public utilities still exposed for GUI and other modules
+def list_encrypted_files(project_path: str) -> list[str]:
+    """Return list of .enc files available for decryption (delegates to keylogic)."""
+    return list_encrypted_files(project_path)

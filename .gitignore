@@ -1,11 +1,28 @@
 # ================================================
-# 'GitSquisher' - COMPLETE .GITIGNORE (04-14-2026)
+# 'GitSquisher' - ROBUST .GITIGNORE (04-15-2026)
 # ================================================
-# GitSquisher standard template for Python + AI/ML projects
-# (prevents large model files, caches, and temp data from bloating repos)
+# Enhanced GitSquisher standard template for Python + Tkinter + AI/ML projects
+# (prevents large model files, caches, virtualenvs, testing artifacts, and temp data)
 
 # Git internals
 .git/
+
+# Virtual environments & Python packaging
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+.installed.cfg
+*.egg
+dist/
+build/
+wheels/
+share/python-wheels/
+*.whl
+MANIFEST
 
 # Python bytecode & caches
 __pycache__/
@@ -13,17 +30,40 @@ __pycache__/
 *.pyo
 *.pyd
 *.cpython-*.pyc
+*.so
+.Python
 
-# Security & encryption files
+# Testing, coverage & linting
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+.hypothesis/
+
+# Jupyter & notebooks (optional — uncomment *.ipynb if you want to ignore notebooks)
+.ipynb_checkpoints/
+
+# Security & encryption files (GitSquisher-specific)
 *.key
 *.enc
 *.pem
+*.p12
+*.pfx
 secrets.json
 credentials.json
 .env
 .env.local
+.env.*
+!.env.example
+grem_encryption.key
 
-# Large model / tokenizer / AI artifacts (common in ML projects)
+# Large model / tokenizer / AI artifacts
 models/
 tokenizer.json
 vocab.json
@@ -38,6 +78,10 @@ merges.txt
 *.onnx
 *.pb
 model.safetensors.index.json
+wandb/
+mlruns/
+tensorboard/
+lightning_logs/
 
 # Runtime / temporary JSON files
 load_model.json
@@ -45,72 +89,33 @@ load_bar.json
 progress_*.json
 *.jsonl
 
-# Backups and editor junk
+# Logs, databases & build artifacts
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
 *.backup
 *.tmp
 *~
+
+# Editor & OS junk
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
 *.swp
 *.swo
+*.swn
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
 
-# Logs and build artifacts
-*.log
-dist/
-build/
-*.egg-info/
-__pycache__/
-
-# Optional: any future large folders
-# (add your own custom patterns below)
+# Squished archives (auto-managed by GitSquisher)
+squishes/
 
 # ================================================
 # USER CUSTOM ENTRIES (preserved from previous .gitignore)
 # ================================================
-.git/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.cpython-*.pyc
-*.key
-*.enc
-*.pem
-secrets.json
-credentials.json
-.env
-.env.local
-models/
-tokenizer.json
-vocab.json
-merges.txt
-*.safetensors
-*.bin
-*.pt
-*.pth
-*.gguf
-*.ckpt
-*.h5
-*.onnx
-*.pb
-model.safetensors.index.json
-load_model.json
-load_bar.json
-progress_*.json
-*.jsonl
-*.backup
-*.tmp
-*~
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-*.swp
-*.swo
-*.log
-dist/
-build/
-*.egg-info/
-__pycache__/

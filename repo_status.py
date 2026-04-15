@@ -71,7 +71,7 @@ def get_repo_status(project_path: str, project_name: str = "") -> Dict[str, Any]
         result["status_lines"].append(("⚠️ Not yet a Git repository.\n", "warning"))
         result["status_lines"].append(("Run 'git init' to initialize.\n", "info"))
 
-    result["status_lines"].append(("\n✅ Ready for GitSquisher commands (zipping coming soon).", "success"))
+    result["status_lines"].append(("\n✅ Ready for GitSquisher commands.", "success"))
     return result
 
 
