@@ -1,8 +1,13 @@
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, messagebox
 import os
-import subprocess
 from repo_status import get_repo_status
+from git_structure import build_interactive_structure
+from gitignore_manager import add_to_gitignore, remove_from_gitignore
+from squisher import create_squish, list_squishable_files
+from squisher_encrypt import encrypt_squish
+from ignore_template import apply_ignore_template
+from squisher_shutdown import safe_shutdown
 
 class GitSquisherGUI:
     def __init__(self):
@@ -81,6 +86,36 @@ class GitSquisherGUI:
                         highlightcolor=self.accent_color, insertbackground=self.fg_color)
         project_entry.pack(fill=tk.X, padx=25, pady=8, ipady=8)
         
+        # LIVE PREVIEW COUNTER
+        self.preview_label = tk.Label(left, text="📦 0 clean files will be squished", 
+                                     font=("Helvetica", 12, "bold"), bg=self.panel_color, 
+                                     fg="#fb923c", anchor="w")
+        self.preview_label.pack(anchor="w", padx=25, pady=(15, 5))
+        
+        # SQUISH BUTTON with grapes emoji
+        squish_btn = tk.Button(left, text="🗜️ Squish (Zip) 🍇", command=self.squish_project,
+                               bg="#22c55e", fg="white", font=("Helvetica", 14, "bold"),
+                               relief="flat", height=3, activebackground="#4ade80")
+        squish_btn.pack(pady=15, padx=25, fill=tk.X)
+        
+        # ENCRYPT & KEY BUTTON
+        encrypt_btn = tk.Button(left, text="🔐 Encrypt & Key", command=self.encrypt_project,
+                               bg="#8b5cf6", fg="white", font=("Helvetica", 14, "bold"),
+                               relief="flat", height=3, activebackground="#a78bfa")
+        encrypt_btn.pack(pady=8, padx=25, fill=tk.X)
+        
+        # APPLY ADVANCED .GITIGNORE BUTTON (completes the main debloat protocol)
+        template_btn = tk.Button(left, text="📋 Apply Advanced .gitignore", command=self.apply_template,
+                                 bg="#eab308", fg="white", font=("Helvetica", 11, "bold"),
+                                 relief="flat", height=2, activebackground="#fcd34d")
+        template_btn.pack(pady=8, padx=25, fill=tk.X)
+        
+        # EXIT BUTTON
+        exit_btn = tk.Button(left, text="✕ Exit GitSquisher", command=self.exit_app,
+                             bg="#ef4444", fg="white", font=("Helvetica", 11, "bold"),
+                             relief="flat", height=2, activebackground="#f87171")
+        exit_btn.pack(pady=12, padx=25, fill=tk.X)
+        
         # RIGHT: Status + interactive Project Structure panels
         right = tk.Frame(main_frame, bg=self.panel_color)
         right.grid(row=0, column=1, sticky="nsew")
@@ -110,7 +145,7 @@ class GitSquisherGUI:
         self.status_text.tag_config("error", foreground=self.error_color)
         self.status_text.tag_config("info", foreground=self.fg_color)
         
-        # Interactive two-column Project Structure (scrollable rows + dynamic buttons)
+        # Interactive two-column Project Structure
         structure_header = tk.Frame(right, bg=self.panel_color)
         structure_header.pack(fill=tk.X, padx=20, pady=(12, 8))
         
@@ -135,166 +170,164 @@ class GitSquisherGUI:
         main_frame.rowconfigure(0, weight=1)
         
     def browse(self):
-        dir_path = filedialog.askdirectory(title="Select Project Root Directory")
-        if dir_path:
-            self.path_var.set(dir_path)
-            self.load_repository()  # Auto-load on browse for better UX
+        try:
+            dir_path = filedialog.askdirectory(title="Select Project Root Directory")
+            if dir_path:
+                self.path_var.set(dir_path)
+                self.load_repository()
+        except Exception as e:
+            messagebox.showwarning("Graceful Warning", f"Browse failed (non-critical): {e}")
             
     def load_repository(self):
-        path = self.path_var.get().strip()
-        self.status_text.config(state="normal")
-        self.status_text.delete(1.0, tk.END)
-        
-        if not path:
-            self.status_text.insert(tk.END, "❌ Please select or enter a directory path.\n", "error")
+        try:
+            path = self.path_var.get().strip()
+            self.status_text.config(state="normal")
+            self.status_text.delete(1.0, tk.END)
+            
+            if not path:
+                self.status_text.insert(tk.END, "❌ Please select or enter a directory path.\n", "error")
+                self.status_text.config(state="disabled")
+                self.preview_label.config(text="📦 0 clean files will be squished")
+                return
+            
+            # AUTO-APPLY advanced .gitignore template (completes main debloat protocol)
+            success, msg = apply_ignore_template(path, self.project_name_var.get().strip())
+            if success:
+                self.status_text.insert(tk.END, f"{msg}\n", "success")
+            else:
+                self.status_text.insert(tk.END, f"{msg}\n", "warning")
+            
+            status_data = get_repo_status(path, self.project_name_var.get().strip())
+            self.project_name_var.set(status_data["project_name"])
+            
+            for text, tag in status_data.get("status_lines", []):
+                self.status_text.insert(tk.END, text, tag)
+            
             self.status_text.config(state="disabled")
+            
+            self._populate_structure(path)
+            
+            files_to_squish = list_squishable_files(path)
+            self.preview_label.config(
+                text=f"📦 {len(files_to_squish)} clean files will be squished"
+            )
+        except Exception as e:
+            self.status_text.config(state="normal")
+            self.status_text.insert(tk.END, f"⚠️ Graceful load error (non-fatal): {e}\n", "warning")
+            self.status_text.config(state="disabled")
+            messagebox.showwarning("Graceful Warning", f"Load encountered an issue but app continues: {e}")
+        
+    def apply_template(self):
+        """One-click apply of the advanced .gitignore template."""
+        path = self.path_var.get().strip()
+        if not path:
+            messagebox.showerror("Error", "Please load a project directory first.")
             return
-        
-        # Use the dedicated helper (no duplication!)
-        status_data = get_repo_status(path, self.project_name_var.get().strip())
-        
-        # Sync project name back to UI (handles auto-fill from basename)
-        self.project_name_var.set(status_data["project_name"])
-        
-        # Render all status lines with their proper color tags
-        for text, tag in status_data.get("status_lines", []):
-            self.status_text.insert(tk.END, text, tag)
-        
-        self.status_text.config(state="disabled")
-        
-        # Populate the interactive two-column Project Structure
-        self._populate_structure(path)
-        
-    def _get_file_status_map(self, root_path: str) -> dict:
-        """Return dict of relative path -> color tag for background coloring."""
-        status_map = {}
-        if not os.path.exists(os.path.join(root_path, ".git")):
-            return status_map
-        try:
-            output = subprocess.check_output(
-                ["git", "-C", root_path, "status", "--porcelain", "-uall"],
-                text=True, stderr=subprocess.STDOUT
-            ).strip()
-            for line in output.splitlines():
-                if not line:
-                    continue
-                code = line[:2].strip()
-                rel_path = line[3:].strip()
-                if code.startswith("?"):
-                    status_map[rel_path] = "untracked"
-                else:
-                    status_map[rel_path] = "modified"
-        except Exception:
-            pass  # graceful fallback
-        return status_map
-        
-    def _is_ignored(self, rel_path: str, root_path: str) -> bool:
-        """Check if the relative path appears in .gitignore (exact line match)."""
-        gitignore_path = os.path.join(root_path, ".gitignore")
-        if not os.path.exists(gitignore_path):
-            return False
-        try:
-            with open(gitignore_path, "r", encoding="utf-8") as f:
-                lines = [line.strip() for line in f.readlines() if line.strip() and not line.startswith("#")]
-            return rel_path in lines
-        except Exception:
-            return False
+        project_name = self.project_name_var.get().strip() or os.path.basename(path)
+        success, msg = apply_ignore_template(path, project_name)
+        if success:
+            messagebox.showinfo("Success", msg)
+            self.load_repository()  # refresh everything
+        else:
+            messagebox.showerror("Template Error", msg)
         
     def _populate_structure(self, root_path: str):
-        """Build two-column rows (name + dynamic ❌ / ♻️ button) with greyed-out styling for ignored items."""
-        # Clear any previous rows
-        for widget in self.structure_inner.winfo_children():
-            widget.destroy()
-        
-        status_map = self._get_file_status_map(root_path)
-        row = 0
-        
         try:
-            for dirpath, dirnames, filenames in os.walk(root_path):
-                # Skip .git directory entirely
-                if ".git" in dirnames:
-                    dirnames.remove(".git")
+            for widget in self.structure_inner.winfo_children():
+                widget.destroy()
+            
+            rows = build_interactive_structure(root_path)
+            for idx, row_data in enumerate(rows):
+                frame = tk.Frame(self.structure_inner, bg="#1a1a2b")
+                frame.grid(row=idx, column=0, sticky="ew", padx=10, pady=4 if row_data["type"] == "dir" else 2)
                 
-                level = dirpath.replace(root_path, "").count(os.sep)
-                indent = "│   " * level
+                tk.Label(frame, text=f"{row_data['indent']}{row_data['display_name']}", 
+                         bg="#1a1a2b", fg=row_data["fg_color"], font=("Consolas", 11)).pack(side=tk.LEFT)
                 
-                # Directory row
-                rel_dir = os.path.relpath(dirpath, root_path)
-                if rel_dir == ".":
-                    rel_dir = "."
-                is_ignored_dir = self._is_ignored(rel_dir, root_path)
-                dir_fg = self.grey_color if is_ignored_dir else "#a5b4fc"
-                dir_frame = tk.Frame(self.structure_inner, bg="#1a1a2b")
-                dir_frame.grid(row=row, column=0, sticky="ew", padx=10, pady=4)
-                tk.Label(dir_frame, text=f"{indent}📁 {rel_dir}/", 
-                         bg="#1a1a2b", fg=dir_fg, font=("Consolas", 11)).pack(side=tk.LEFT)
-                # Dynamic button for directories too
-                btn_text = "♻️" if is_ignored_dir else "❌"
-                btn_cmd = lambda p=rel_dir, r=root_path: self.remove_from_gitignore(p, r) if is_ignored_dir else self.add_to_gitignore(p, r)
-                tk.Button(dir_frame, text=btn_text, fg="#ef4444" if not is_ignored_dir else "#eab308", 
-                          bg="#1a1a2b", font=("Helvetica", 14, "bold"), relief="flat", width=3,
-                          command=btn_cmd).pack(side=tk.RIGHT, padx=10)
-                row += 1
-                
-                # File rows
-                file_indent = "│   " * (level + 1)
-                for f in sorted(filenames):
-                    rel_file = os.path.join(rel_dir, f) if rel_dir != "." else f
-                    tag = status_map.get(rel_file, "clean")
-                    is_ignored = self._is_ignored(rel_file, root_path)
-                    fg_color = self.grey_color if is_ignored else ("#f87171" if tag == "untracked" else "#facc15" if tag == "modified" else "#a5b4fc")
-                    
-                    file_frame = tk.Frame(self.structure_inner, bg="#1a1a2b")
-                    file_frame.grid(row=row, column=0, sticky="ew", padx=10, pady=2)
-                    
-                    # Column 1: indented file name (greyed if ignored)
-                    tk.Label(file_frame, text=f"{file_indent}📄 {f}", 
-                             bg="#1a1a2b", fg=fg_color, font=("Consolas", 11)).pack(side=tk.LEFT)
-                    
-                    # Column 2: dynamic button (❌ or ♻️)
-                    btn_text = "♻️" if is_ignored else "❌"
-                    btn_cmd = lambda p=rel_file, r=root_path: self.remove_from_gitignore(p, r) if is_ignored else self.add_to_gitignore(p, r)
-                    tk.Button(file_frame, text=btn_text, fg="#ef4444" if not is_ignored else "#eab308", 
+                if row_data["button_text"]:
+                    btn_text = row_data["button_text"]
+                    btn_fg = row_data["button_fg"]
+                    rel_path = row_data["rel_path"]
+                    is_ignored = row_data["is_ignored"]
+                    btn_cmd = lambda p=rel_path, r=root_path, ign=is_ignored: self._remove_from_gitignore(p, r) if ign else self._add_to_gitignore(p, r)
+                    tk.Button(frame, text=btn_text, fg=btn_fg, 
                               bg="#1a1a2b", font=("Helvetica", 14, "bold"), relief="flat", width=3,
                               command=btn_cmd).pack(side=tk.RIGHT, padx=10)
-                    row += 1
-                    
-                # Prevent huge trees from freezing UI
-                if level > 6:
-                    tk.Label(self.structure_inner, text="   ... (deeper levels truncated for performance)", 
-                             bg="#1a1a2b", fg="#a5b4fc", font=("Consolas", 11)).grid(row=row, column=0, sticky="w", padx=10)
-                    break
-                    
         except Exception as e:
-            tk.Label(self.structure_inner, text=f"❌ Could not read structure: {e}", 
-                     bg="#1a1a2b", fg="#ef4444").grid(row=row, column=0, sticky="w", padx=10)
+            tk.Label(self.structure_inner, text=f"❌ Could not read structure (graceful fallback): {e}", 
+                     bg="#1a1a2b", fg="#ef4444").grid(row=0, column=0, sticky="w", padx=10)
         
-    def add_to_gitignore(self, rel_path: str, root_path: str):
-        """Append the selected item to .gitignore and refresh the entire view."""
-        gitignore_path = os.path.join(root_path, ".gitignore")
-        try:
-            with open(gitignore_path, "a", encoding="utf-8") as f:
-                f.write(f"\n{rel_path}\n")
-            self.load_repository()  # refresh instantly
-        except Exception as e:
-            print(f"Failed to update .gitignore: {e}")
+    def _add_to_gitignore(self, rel_path: str, root_path: str):
+        add_to_gitignore(rel_path, root_path)
+        self.load_repository()
         
-    def remove_from_gitignore(self, rel_path: str, root_path: str):
-        """Remove the selected item from .gitignore (exact line match) and refresh."""
-        gitignore_path = os.path.join(root_path, ".gitignore")
-        if not os.path.exists(gitignore_path):
-            return
+    def _remove_from_gitignore(self, rel_path: str, root_path: str):
+        remove_from_gitignore(rel_path, root_path)
+        self.load_repository()
+        
+    def squish_project(self):
         try:
-            with open(gitignore_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-            with open(gitignore_path, "w", encoding="utf-8") as f:
-                for line in lines:
-                    if line.strip() != rel_path:
-                        f.write(line)
-            self.load_repository()  # refresh instantly
+            path = self.path_var.get().strip()
+            if not path:
+                messagebox.showerror("Error", "Please load a project directory first.")
+                return
+            
+            project_name = self.project_name_var.get().strip() or os.path.basename(path)
+            
+            self.status_text.config(state="normal")
+            self.status_text.insert(tk.END, "\n🗜️ Starting Squish (Zip)...\n", "info")
+            self.status_text.see(tk.END)
+            self.root.update()
+            
+            success, msg = create_squish(path, project_name)
+            
+            if success:
+                self.status_text.insert(tk.END, f"{msg}\n", "success")
+            else:
+                self.status_text.insert(tk.END, f"{msg}\n", "error")
         except Exception as e:
-            print(f"Failed to update .gitignore: {e}")
+            self.status_text.insert(tk.END, f"⚠️ Squish encountered non-fatal error: {e}\n", "warning")
+            messagebox.showwarning("Graceful Warning", f"Squish failed gracefully: {e}")
+        finally:
+            self.status_text.config(state="disabled")
+            self.load_repository()
+        
+    def encrypt_project(self):
+        try:
+            path = self.path_var.get().strip()
+            if not path:
+                messagebox.showerror("Error", "Please load a project directory first.")
+                return
+            
+            project_name = self.project_name_var.get().strip() or os.path.basename(path)
+            
+            self.status_text.config(state="normal")
+            self.status_text.insert(tk.END, "\n🔐 Starting Encrypt & Key...\n", "info")
+            self.status_text.see(tk.END)
+            self.root.update()
+            
+            success, msg = encrypt_squish(path, project_name)
+            
+            if success:
+                self.status_text.insert(tk.END, f"{msg}\n", "success")
+            else:
+                self.status_text.insert(tk.END, f"{msg}\n", "error")
+        except Exception as e:
+            self.status_text.insert(tk.END, f"⚠️ Encrypt encountered non-fatal error: {e}\n", "warning")
+            messagebox.showwarning("Graceful Warning", f"Encrypt failed gracefully: {e}")
+        finally:
+            self.status_text.config(state="disabled")
+            self.load_repository()
+        
+    def exit_app(self):
+        """Graceful exit using the dedicated safe shutdown helper."""
+        safe_shutdown(self.root)
 
 if __name__ == "__main__":
-    app = GitSquisherGUI()
-    app.root.mainloop()
+    try:
+        app = GitSquisherGUI()
+        app.root.mainloop()
+    except Exception as e:
+        # Final safety net at entry point
+        print(f"GitSquisher encountered a fatal startup issue (graceful exit): {e}")
+        safe_shutdown()
