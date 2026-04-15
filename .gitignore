@@ -1,1 +1,63 @@
-*.zip
+# ================================================
+# 'GitSquisher' - COMPLETE .GITIGNORE (04-14-2026)
+# ================================================
+# Git internals (prevents 60-file explosion on Grok.com)
+.git/
+
+# Python bytecode & caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.cpython-*.pyc
+
+# Security - encryption keys & temp encrypted files
+*.key
+grem_encryption.key
+*.enc
+memory.json.enc
+
+# Large model / tokenizer artifacts
+models/
+granite4-small-h/
+tokenizer.json
+vocab.json
+merges.txt
+model.safetensors.index.json
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.ckpt
+*.h5
+*.onnx
+*.pb
+
+# Runtime / temporary JSON files
+load_model.json
+load_bar.json
+progress_*.json
+
+# Backups and editor junk
+*.backup
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs and build artifacts
+*.log
+dist/
+build/
+*.egg-info/
+
+# Optional: any future large folders
+
+entry.py
+
+entry.py
