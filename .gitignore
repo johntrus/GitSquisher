@@ -1,92 +1,70 @@
 # ================================================
-# 'GitSquisher' - ADVANCED .GITIGNORE (04-14-2026)
+# 'GitSquisher' - COMPLETE .GITIGNORE (04-14-2026)
 # ================================================
-# Git internals (prevents 60-file explosion on Grok.com)
+# GitSquisher standard template for Python + AI/ML projects
+# (prevents large model files, caches, and temp data from bloating repos)
+
+# Git internals
 .git/
 
-# ================================================
-# ADVANCED RECURSIVE PATTERNS (use **/ for any depth)
-# ================================================
-**/__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
-**/*.cpython-*.pyc
-**/.DS_Store
-**/*.swp
-**/*.swo
-**/.vscode/
-**/.idea/
-**/*.log
-**/*.tmp
-**/*.backup
-**/*~
+# Python bytecode & caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.cpython-*.pyc
 
-# ================================================
-# VIRTUAL ENVIRONMENTS & RUNTIME (advanced)
-# ================================================
-venv/
-env/
-.venv/
-**/.env
-**/*.env
-.env.local
-.env.development
-.env.production
-
-# ================================================
-# SECURITY & ENCRYPTION (GitSquisher specific)
-# ================================================
+# Security & encryption files
 *.key
-grem_encryption.key
 *.enc
-memory.json.enc
+*.pem
+secrets.json
+credentials.json
+.env
+.env.local
 
-# ================================================
-# AI / ML / LARGE MODEL ARTIFACTS (advanced exclusions)
-# ================================================
+# Large model / tokenizer / AI artifacts (common in ML projects)
 models/
-granite4-small-h/
 tokenizer.json
 vocab.json
 merges.txt
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.gguf
+*.ckpt
+*.h5
+*.onnx
+*.pb
 model.safetensors.index.json
-**/*.safetensors
-**/*.bin
-**/*.pt
-**/*.pth
-**/*.gguf
-**/*.ckpt
-**/*.h5
-**/*.onnx
-**/*.pb
 
-# ================================================
-# BUILD & PACKAGE OUTPUTS (advanced)
-# ================================================
-dist/
-build/
-**/*.egg-info/
-**/*.whl
-**/*.tar.gz
-**/*.zip   # (except those inside squishes/ - handled separately)
-
-# ================================================
-# RUNTIME / TEMP JSON & PROGRESS FILES
-# ================================================
+# Runtime / temporary JSON files
 load_model.json
 load_bar.json
 progress_*.json
+*.jsonl
 
-# ================================================
-# OPTIONAL: LARGE FILE HINT (uncomment + use git lfs for >10MB files)
-# ================================================
-# *.bin filter=lfs diff=lfs merge=lfs -text
-# *.safetensors filter=lfs diff=lfs merge=lfs -text
+# Backups and editor junk
+*.backup
+*.tmp
+*~
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# ================================================
-# USER CUSTOM ENTRIES (preserved automatically)
-# ================================================
+# Logs and build artifacts
+*.log
+dist/
+build/
+*.egg-info/
+__pycache__/
+
+# Optional: any future large folders
+# (add your own custom patterns below)
 
 # ================================================
 # USER CUSTOM ENTRIES (preserved from previous .gitignore)
@@ -98,15 +76,16 @@ __pycache__/
 *.pyd
 *.cpython-*.pyc
 *.key
-grem_encryption.key
 *.enc
-memory.json.enc
+*.pem
+secrets.json
+credentials.json
+.env
+.env.local
 models/
-granite4-small-h/
 tokenizer.json
 vocab.json
 merges.txt
-model.safetensors.index.json
 *.safetensors
 *.bin
 *.pt
@@ -116,9 +95,11 @@ model.safetensors.index.json
 *.h5
 *.onnx
 *.pb
+model.safetensors.index.json
 load_model.json
 load_bar.json
 progress_*.json
+*.jsonl
 *.backup
 *.tmp
 *~
@@ -132,5 +113,4 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
-entry.py
-entry.py
+__pycache__/

@@ -41,33 +41,6 @@ def _is_ignored(rel_path: str, root_path: str) -> bool:
         return False
 
 
-def _get_file_icon(filename: str) -> str:
-    """Return the perfect emoji icon for the file extension (now with 🔐 for encrypted archives)."""
-    ext = os.path.splitext(filename.lower())[1]
-    icon_map: Dict[str, str] = {
-        ".py": "🐍",      # Python
-        ".md": "📝",      # Markdown
-        ".txt": "📄",     # Plain text
-        ".json": "📋",    # JSON / config
-        ".yml": "⚙️",     # YAML
-        ".yaml": "⚙️",
-        ".sh": "🐚",      # Shell script
-        ".png": "🖼️",     # Images
-        ".jpg": "🖼️",
-        ".jpeg": "🖼️",
-        ".gif": "🖼️",
-        ".zip": "📦",     # Squished archives
-        ".enc": "🔐",     # Encrypted squishes (new)
-        ".pdf": "📕",
-        ".html": "🌐",
-        ".css": "🎨",
-        ".js": "📜",
-        ".ipynb": "📓",   # Jupyter
-        "": "📄",         # no extension fallback
-    }
-    return icon_map.get(ext, "📄")  # default document icon
-
-
 def build_interactive_structure(root_path: str) -> List[Dict[str, Any]]:
     """Build a complete list of rows for the two-column interactive Project Structure view.
 
@@ -99,53 +72,29 @@ def build_interactive_structure(root_path: str) -> List[Dict[str, Any]]:
             if rel_dir == ".":
                 rel_dir = "."
             is_ignored_dir = _is_ignored(rel_dir, root_path)
-
-            # Special treatment for squishes/ folder
-            if rel_dir == "squishes":
-                display_name = "📦 squishes/"
-                dir_fg = "#fb923c"  # orange for archive folder
-            else:
-                display_name = f"📁 {rel_dir}/"
-                dir_fg = "#9ca3af" if is_ignored_dir else "#a5b4fc"
-
             rows.append({
                 "type": "dir",
                 "indent": indent,
-                "display_name": display_name,
+                "display_name": f"📁 {rel_dir}/",
                 "rel_path": rel_dir,
                 "tag": "clean",
-                "fg_color": dir_fg,
+                "fg_color": "#9ca3af" if is_ignored_dir else "#a5b4fc",
                 "is_ignored": is_ignored_dir,
                 "button_text": "♻️" if is_ignored_dir else "❌",
                 "button_fg": "#eab308" if is_ignored_dir else "#ef4444"
             })
 
-            # File rows with custom per-type icons
+            # File rows
             file_indent = "│   " * (level + 1)
             for f in sorted(filenames):
                 rel_file = os.path.join(rel_dir, f) if rel_dir != "." else f
                 tag = status_map.get(rel_file, "clean")
                 is_ignored = _is_ignored(rel_file, root_path)
-
-                icon = _get_file_icon(f)
-                display_name = f"{icon} {f}"
-
-                # Color priority: ignored → special .enc purple → git status → normal
-                if is_ignored:
-                    fg_color = "#9ca3af"
-                elif f.lower().endswith(".enc"):
-                    fg_color = "#c084fc"  # vibrant purple for encrypted files
-                elif tag == "untracked":
-                    fg_color = "#f87171"
-                elif tag == "modified":
-                    fg_color = "#facc15"
-                else:
-                    fg_color = "#a5b4fc"
-
+                fg_color = "#9ca3af" if is_ignored else ("#f87171" if tag == "untracked" else "#facc15" if tag == "modified" else "#a5b4fc")
                 rows.append({
                     "type": "file",
                     "indent": file_indent,
-                    "display_name": display_name,
+                    "display_name": f"📄 {f}",
                     "rel_path": rel_file,
                     "tag": tag,
                     "fg_color": fg_color,
