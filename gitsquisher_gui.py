@@ -123,7 +123,31 @@ class GitSquisherGUI:
         
         self.status_text.config(state="disabled")
         self.load_repository()
-        
+     
+    def show_help(self):
+        """Show friendly help popup with quick start and tips."""
+        help_text = """GitSquisher Help 🗜️🍇
+
+Quick Start:
+1. Browse → pick your project folder
+2. Click "Load Repository" (or it auto-loads)
+3. See live Git status + ignore toggles
+4. Click "Squish Project" → clean zip
+5. Click "Encrypt & Key" → AES-256 + auto key rotation
+6. Click "Decrypt Latest" when you get it back
+
+Pro tips:
+• .gitignore is fully respected (and editable live)
+• Keys rotate every 90 days automatically
+• Your encryption key is auto-added to .gitignore
+• Works perfectly with Cursor, Claude, Grok, Windsurf, etc.
+
+Enjoy the squish! 🔥
+
+           Made with ❤️ by @johntrus
+"""
+        messagebox.showinfo("GitSquisher Help", help_text)
+   
     def encrypt_project(self):
         path = self.path_var.get().strip()
         if not path:
