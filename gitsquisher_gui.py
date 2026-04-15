@@ -10,6 +10,7 @@ from squisher_decrypt import decrypt_latest_squish
 from squisher_shutdown import safe_shutdown
 from squisher_style import SquisherStyle
 from squisher_layout import create_widgets
+from helper_helper import show_help_window   # ← added for Help button
 
 class GitSquisherGUI:
     def __init__(self):
@@ -193,6 +194,10 @@ Enjoy the squish! 🔥
         self.status_text.config(state="disabled")
         self.load_repository()
         
+    def show_help(self):
+        """Open the Help window (called by the Help button in squisher_layout.py)."""
+        show_help_window(self.root)
+
     def exit_app(self):
         safe_shutdown(self.root)
 
