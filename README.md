@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 🍇 GitSquisher
 
 **Clean • Secure • AI-First Project Zipper**
@@ -7,12 +8,22 @@
 [![GUI](https://img.shields.io/badge/GUI-Tkinter-green.svg)](https://docs.python.org/3/library/tkinter.html)
 [![Stars](https://img.shields.io/github/stars/johntrus/GitSquisher)](https://github.com/johntrus/GitSquisher/stargazers)
 
+=======
+# 🗜️🍇 **GitSquisher**
+
+**Clean • Secure • AI-First Project Zipper**
+
+>>>>>>> d6285d8 (docs: further polish README with premium aesthetics and clearer layout)
 GitSquisher is a simple, safe desktop GUI tool that creates perfect `.gitignore`-respecting zipped snapshots of any project, then optionally encrypts them with production-grade AES-256 and automatic 90-day key rotation.
 
 Perfect for securely sharing large codebases with AI coding assistants (Claude, Cursor, Grok, etc.) without ever leaking secrets, caches, models, or bloat.
 
 ## ✨ Key Features
+<<<<<<< HEAD
 - Interactive two-column **Project Structure** viewer with live Git status colors and one-click ignore toggles  
+=======
+- **Interactive Project Structure** viewer with live Git status colors and one-click ignore toggles  
+>>>>>>> d6285d8 (docs: further polish README with premium aesthetics and clearer layout)
 - Real-time preview counter: **📦 X clean files will be squished**  
 - **Squish (Zip)** using `git archive` (preferred) or manual fallback  
 - **🔐 Encrypt & Key** — automatic 90-day key rotation + full MultiFernet backward compatibility  
@@ -42,4 +53,7 @@ Your `grem_encryption.key` is automatically ignored and never committed. The app
 MIT
 
 Made with ❤️ for clean, secure, and AI-powered development workflows.
+<<<<<<< HEAD
 EOF
+=======
+>>>>>>> d6285d8 (docs: further polish README with premium aesthetics and clearer layout)
